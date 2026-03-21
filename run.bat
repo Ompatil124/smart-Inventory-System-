@@ -1,33 +1,31 @@
 @echo off
 title Smart Inventory System
 
-:: ── Step 1: Compile all Java sources into out\ ───────────────────────────────
-echo Compiling...
+:: Check if Maven is installed
+where mvn >nul 2>nul
+if %ERRORLEVEL% EQU 0 (
+    echo [System] Found Maven. Running with 'mvn exec:java'...
+    mvn clean compile exec:java
+    goto end
+)
 
-set JAVA_HOME=C:\progamming language\java
-set CP_LIBS=target\lib\zxing-core.jar;target\lib\zxing-javase.jar;target\lib\webcam-capture.jar;target\lib\slf4j-api.jar;target\lib\bridj.jar
+:: Fallback if Maven isn't found - assumes Java is in PATH and target/lib exists
+echo [System] Maven not found. Attempting manual run...
 
 if not exist out mkdir out
 
-:: Collect all .java files into a temporary list
+:: Collect all .java files
 dir /s /b "src\main\java\*.java" > _sources.txt
 
-"%JAVA_HOME%\bin\javac.exe" -cp "%CP_LIBS%" -d out "@_sources.txt" 2>&1
+:: CP_LIBS target folder created by Maven previously
+set CP_LIBS=target\lib\zxing-core.jar;target\lib\zxing-javase.jar;target\lib\webcam-capture.jar;target\lib\slf4j-api.jar;target\lib\bridj.jar
+
+echo Compiling...
+javac -cp "%CP_LIBS%" -d out "@_sources.txt"
 del _sources.txt
 
-if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo !! Compilation failed. See errors above.
-    pause
-    exit /b 1
-)
+echo Starting...
+java -cp "out;%CP_LIBS%" com.inventory.Main
 
-:: ── Step 2: Run ───────────────────────────────────────────────────────────────
-echo Starting Smart Inventory System...
-"%JAVA_HOME%\bin\java.exe" -cp "out;%CP_LIBS%" com.inventory.Main
-
-if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo Application exited with error. Check the console above.
-    pause
-)
+:end
+if %ERRORLEVEL% NEQ 0 pause
