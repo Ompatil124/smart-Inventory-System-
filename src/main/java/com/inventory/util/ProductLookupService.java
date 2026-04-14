@@ -4,6 +4,9 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 /**
  * Resolves a barcode number to full product details.
@@ -24,12 +27,14 @@ public class ProductLookupService {
     // ── Inner result record ───────────────────────────────────────────────────
 
     public static class ProductDetails {
-        public String name;
-        public String category;
-        public double price;
-        public int    quantity;
-        public String brand;
-        public String imageUrl;
+        public String    name;
+        public String    category;
+        public double    price;
+        public int       quantity;
+        public String    brand;
+        public String    imageUrl;
+        /** Expiry / best-before date from the API, or {@code null} if not available */
+        public LocalDate expiryDate;
         /** true if data came from local CSV; false if from Open Food Facts API */
         public boolean fromLocalDB;
     }
@@ -59,12 +64,14 @@ public class ProductLookupService {
         String[] local = localDB.lookup(barcode);
         if (local != null) {
             ProductDetails details = new ProductDetails();
-            details.name       = local[0];
-            details.category   = local[1];
-            details.price      = parseDouble(local[2]);
-            details.quantity   = parseInt(local[3], 10);
-            details.brand      = "";
-            details.imageUrl   = "";
+            details.name        = local[0];
+            details.category    = local[1];
+            details.price       = parseDouble(local[2]);
+            details.quantity    = parseInt(local[3], 10);
+            details.brand       = "";
+            details.imageUrl    = "";
+            // local[4] = optional expiryDate (YYYY-MM-DD or blank)
+            details.expiryDate  = (local.length > 4) ? parseExpiryDate(local[4]) : null;
             details.fromLocalDB = true;
             return details;
         }
@@ -119,7 +126,11 @@ public class ProductLookupService {
 
             String imageUrl = extractJsonValue(json, "image_url");
 
-            // ── STEP D: Build result ──────────────────────────────────────────
+            // ── STEP D: Parse expiry date ─────────────────────────────────────
+            String rawExpiry = extractJsonValue(json, "expiration_date");
+            LocalDate expiryDate = parseExpiryDate(rawExpiry);
+
+            // ── STEP E: Build result ──────────────────────────────────────────
             ProductDetails details = new ProductDetails();
             details.name        = name;
             details.category    = category;
@@ -127,6 +138,7 @@ public class ProductLookupService {
             details.quantity    = quantity;
             details.brand       = brand;
             details.imageUrl    = imageUrl;
+            details.expiryDate  = expiryDate;
             details.fromLocalDB = false;
             return details;
 
@@ -188,5 +200,33 @@ public class ProductLookupService {
 
     private int parseInt(String s, int fallback) {
         try { return Integer.parseInt(s); } catch (Exception e) { return fallback; }
+    }
+
+    /**
+     * Tries to parse several common date formats returned by Open Food Facts
+     * (e.g. "2026-12-31", "12/2026", "2026").
+     * Returns {@code null} if the string is blank or cannot be parsed.
+     */
+    private LocalDate parseExpiryDate(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        raw = raw.trim();
+        // ISO full date
+        try { return LocalDate.parse(raw, DateTimeFormatter.ISO_LOCAL_DATE); } catch (DateTimeParseException ignored) {}
+        // MM/YYYY
+        try {
+            String[] p = raw.split("/");
+            if (p.length == 2) {
+                int month = Integer.parseInt(p[0].trim());
+                int year  = Integer.parseInt(p[1].trim());
+                return LocalDate.of(year, month, 1).withDayOfMonth(
+                        LocalDate.of(year, month, 1).lengthOfMonth());
+            }
+        } catch (Exception ignored) {}
+        // YYYY only
+        try {
+            int year = Integer.parseInt(raw);
+            return LocalDate.of(year, 12, 31);
+        } catch (Exception ignored) {}
+        return null;
     }
 }

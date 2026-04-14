@@ -1,6 +1,9 @@
 package com.inventory.model;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * <h2>Product — Model Layer (Phase 2)</h2>
@@ -50,6 +53,13 @@ public class Product {
 
     /** Auto-assigned unique numeric identifier. */
     private int id;
+
+    /**
+     * Barcode strings associated with this product.
+     * A product may have multiple barcodes (e.g. different packaging sizes).
+     * Never {@code null}; starts empty.
+     */
+    private final ArrayList<String> barcodes = new ArrayList<>();
 
     /**
      * Promotional discount percentage in the range [0, 100].
@@ -146,6 +156,32 @@ public class Product {
 
     /** @return the active discount percentage (0 = none) */
     public double getDiscountPercent() { return discountPercent; }
+
+    /**
+     * @return an unmodifiable view of the barcodes associated with this product
+     */
+    public List<String> getBarcodes() { return Collections.unmodifiableList(barcodes); }
+
+    /**
+     * Adds a barcode to this product if it is not already present.
+     *
+     * @param barcode the barcode string to add (ignored if null/blank or duplicate)
+     */
+    public void addBarcode(String barcode) {
+        if (barcode == null || barcode.isBlank()) return;
+        String trimmed = barcode.trim();
+        if (!barcodes.contains(trimmed)) barcodes.add(trimmed);
+    }
+
+    /**
+     * Replaces the barcode list (used when loading from CSV).
+     *
+     * @param list new list of barcodes; {@code null} is treated as empty
+     */
+    public void setBarcodes(List<String> list) {
+        barcodes.clear();
+        if (list != null) list.forEach(this::addBarcode);
+    }
 
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -283,10 +319,11 @@ public class Product {
     public String toString() {
         String expiryStr   = (expiryDate != null)    ? expiryDate.toString() : "N/A";
         String discountStr = (discountPercent > 0.0) ? discountPercent + "%" : "None";
+        String barcodeStr  = barcodes.isEmpty() ? "None" : String.join("|", barcodes);
 
         return String.format(
-            "[ID: %2d] %-25s | Cat: %-12s | Qty: %4d | Price: $%8.2f | Expiry: %-12s | Discount: %s",
-            id, name, category, quantity, price, expiryStr, discountStr
+            "[ID: %2d] %-25s | Cat: %-12s | Qty: %4d | Price: $%8.2f | Expiry: %-12s | Discount: %s | Barcodes: %s",
+            id, name, category, quantity, price, expiryStr, discountStr, barcodeStr
         );
     }
 

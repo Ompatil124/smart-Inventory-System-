@@ -1,3 +1,3 @@
-id,name,category,quantity,price,expiryDate,discountPercent
-1,milk,Dairy,9,14.0,2026-06-09,0.0
-2,Too Yumm Bhoot Chips,Snacks,50,20.0,2026-03-22,30.0
+id,name,category,quantity,price,expiryDate,discountPercent,barcodes
+3,The Man Company Body Parfum Noir 150ml,Other,10,299.0,2027-12-31,0.0,8907367039075
+4,Amul Moti Long-life Milk 450ml x24,Dairy,5,1080.0,2026-01-31,0.0,8901262151368

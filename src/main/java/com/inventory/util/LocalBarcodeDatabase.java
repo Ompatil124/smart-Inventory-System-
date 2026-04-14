@@ -13,11 +13,12 @@ import java.util.Set;
 /**
  * Loads {@code data/indian_products.csv} and provides fast offline barcode lookup.
  *
- * <p>CSV format: {@code barcode,name,category,price,defaultQty}</p>
+ * <p>CSV format: {@code barcode,name,category,price,defaultQty[,expiryDate]}</p>
+ * <p>The {@code expiryDate} column is optional — blank or missing means no known expiry.</p>
  */
 public class LocalBarcodeDatabase {
 
-    /** key = barcode string, value = {name, category, price, defaultQty} */
+    /** key = barcode string, value = {name, category, price, defaultQty, expiryDate} */
     private final Map<String, String[]> database = new HashMap<>();
 
     public LocalBarcodeDatabase() {
@@ -66,14 +67,16 @@ public class LocalBarcodeDatabase {
         while ((line = br.readLine()) != null) {
             line = line.trim();
             if (line.isEmpty()) continue;
-            String[] parts = line.split(",", 5);
+            String[] parts = line.split(",", 7);
             if (parts.length < 5) continue;
             String barcode = parts[0].trim();
             String name    = parts[1].trim();
             String cat     = parts[2].trim();
             String price   = parts[3].trim();
             String qty     = parts[4].trim();
-            database.put(barcode, new String[]{name, cat, price, qty});
+            // Optional 6th column: expiryDate (YYYY-MM-DD or blank)
+            String expiry  = (parts.length > 5) ? parts[5].trim() : "";
+            database.put(barcode, new String[]{name, cat, price, qty, expiry});
         }
         return !database.isEmpty();
     }
@@ -84,7 +87,7 @@ public class LocalBarcodeDatabase {
      * Returns product data for the given barcode, or {@code null} if not found.
      *
      * @param barcode EAN / UPC string
-     * @return {@code String[]{name, category, price, defaultQty}} or {@code null}
+     * @return {@code String[]{name, category, price, defaultQty, expiryDate}} or {@code null}
      */
     public String[] lookup(String barcode) {
         if (barcode == null) return null;

@@ -12,8 +12,10 @@ import java.util.List;
  * Saves and loads the inventory to/from a plain CSV file.
  *
  * <h3>Full format (used by {@link #save} / {@link #load})</h3>
- * <pre>id,name,category,quantity,price,expiryDate,discountPercent</pre>
- * Preserves all Product fields including ID and discount.
+ * <pre>id,name,category,quantity,price,expiryDate,discountPercent,barcodes</pre>
+ * Barcodes column is pipe-separated (e.g. 8901234567890|TMCNOIR150ML).
+ * Old 7-column files without a barcodes column load correctly (barcodes left empty).
+ * Preserves all Product fields including ID, discount, and barcodes.
  *
  * <h3>Phase 6 format (used by {@link #saveToFile} / {@link #loadFromFile})</h3>
  * <pre>name,category,price,quantity,expiryDate</pre>
@@ -36,13 +38,17 @@ public class FileHandler {
     public void save(List<Product> inventory, String filePath) throws IOException {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
             // header row
-            writer.write("id,name,category,quantity,price,expiryDate,discountPercent");
+            writer.write("id,name,category,quantity,price,expiryDate,discountPercent,barcodes");
             writer.newLine();
 
             for (Product p : inventory) {
                 String expiry = (p.getExpiryDate() != null)
                         ? p.getExpiryDate().toString()
                         : NULL_VALUE;
+
+                String barcodes = p.getBarcodes().isEmpty()
+                        ? ""
+                        : String.join("|", p.getBarcodes());
 
                 String line = String.join(DELIMITER,
                         String.valueOf(p.getId()),
@@ -51,7 +57,8 @@ public class FileHandler {
                         String.valueOf(p.getQuantity()),
                         String.valueOf(p.getPrice()),
                         expiry,
-                        String.valueOf(p.getDiscountPercent())
+                        String.valueOf(p.getDiscountPercent()),
+                        escapeCsv(barcodes)
                 );
                 writer.write(line);
                 writer.newLine();
@@ -220,7 +227,7 @@ public class FileHandler {
             throws NumberFormatException, DateTimeParseException, ArrayIndexOutOfBoundsException {
 
         String[] parts = line.split(DELIMITER, -1);
-        // CSV column order: id,name,category,quantity,price,expiryDate,discountPercent
+        // CSV column order: id,name,category,quantity,price,expiryDate,discountPercent[,barcodes]
         int    id       = Integer.parseInt(parts[0].trim());
         String name     = unescapeCsv(parts[1].trim());
         String category = unescapeCsv(parts[2].trim());
@@ -233,8 +240,18 @@ public class FileHandler {
 
         double discount = Double.parseDouble(parts[6].trim());
 
-        // Product constructor (Phase 2): id, name, category, price, quantity, expiryDate, discountPercent
-        return new Product(id, name, category, price, qty, expiry, discount);
+        Product p = new Product(id, name, category, price, qty, expiry, discount);
+
+        // Barcodes column (column 7) — optional for backward compatibility
+        if (parts.length > 7) {
+            String barcodeCol = unescapeCsv(parts[7].trim());
+            if (!barcodeCol.isEmpty()) {
+                for (String bc : barcodeCol.split("\\|")) {
+                    p.addBarcode(bc.trim());
+                }
+            }
+        }
+        return p;
     }
 
     /**

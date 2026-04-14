@@ -9,6 +9,7 @@ import java.awt.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Modal dialog shown after a barcode scan + product lookup.
@@ -78,6 +79,12 @@ public class ProductFoundDialog extends JDialog {
         priceField.setText(details.price > 0
                 ? String.format("%.2f", details.price) : "");
         qtyField.setText(String.valueOf(details.quantity));
+
+        // Auto-fill expiry date if the API provided one
+        if (details.expiryDate != null) {
+            expiryField.setText(details.expiryDate.toString());
+            expiryField.setForeground(new Color(0x111827));
+        }
 
         // Pre-select category combo
         for (int i = 0; i < CATS.length; i++) {
@@ -162,27 +169,43 @@ public class ProductFoundDialog extends JDialog {
         styleField(qtyField);
         addLabelRow(form, "Quantity:", qtyField);
 
-        // ── Expiry Date ───────────────────────────────────────────────────────
+        // ── Expiry Date ──────────────────────────────────────────────────────
         styleField(expiryField);
         expiryField.setToolTipText("Format: YYYY-MM-DD");
-        // Light placeholder hint via foreground trick (no placeholder API in Java 8)
-        expiryField.setText("YYYY-MM-DD");
-        expiryField.setForeground(new Color(0xaaaaaa));
-        expiryField.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override public void focusGained(java.awt.event.FocusEvent e) {
-                if (expiryField.getText().equals("YYYY-MM-DD")) {
-                    expiryField.setText("");
-                    expiryField.setForeground(new Color(0x111827));
+        boolean expiryAutoFilled = (details != null && details.expiryDate != null);
+        if (!expiryAutoFilled) {
+            // Light placeholder hint
+            expiryField.setText("YYYY-MM-DD");
+            expiryField.setForeground(new Color(0xaaaaaa));
+            expiryField.addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override public void focusGained(java.awt.event.FocusEvent e) {
+                    if (expiryField.getText().equals("YYYY-MM-DD")) {
+                        expiryField.setText("");
+                        expiryField.setForeground(new Color(0x111827));
+                    }
                 }
-            }
-            @Override public void focusLost(java.awt.event.FocusEvent e) {
-                if (expiryField.getText().isBlank()) {
-                    expiryField.setText("YYYY-MM-DD");
-                    expiryField.setForeground(new Color(0xaaaaaa));
+                @Override public void focusLost(java.awt.event.FocusEvent e) {
+                    if (expiryField.getText().isBlank()) {
+                        expiryField.setText("YYYY-MM-DD");
+                        expiryField.setForeground(new Color(0xaaaaaa));
+                    }
                 }
-            }
-        });
-        addLabelRow(form, "Expiry Date:", expiryField);
+            });
+        }
+        // Label row: if auto-filled show a small "(auto-filled)" hint
+        JPanel expiryRow = new JPanel(new BorderLayout(6, 0));
+        expiryRow.setBackground(BG_WHITE);
+        expiryRow.add(expiryField, BorderLayout.CENTER);
+        if (expiryAutoFilled) {
+            JLabel autoTag = new JLabel("✔ auto");
+            autoTag.setFont(new Font("Segoe UI", Font.BOLD, 10));
+            autoTag.setForeground(new Color(0x059669));
+            autoTag.setToolTipText("Expiry date was automatically fetched from the product database");
+            expiryRow.add(autoTag, BorderLayout.EAST);
+        }
+        expiryRow.setAlignmentX(LEFT_ALIGNMENT);
+        expiryRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+        addLabelRowWidget(form, "Expiry Date:", expiryRow);
 
         // ── Source badge ──────────────────────────────────────────────────────
         JLabel badge = buildBadge();
@@ -201,14 +224,23 @@ public class ProductFoundDialog extends JDialog {
 
         JButton addBtn    = actionBtn("✔  Add to Inventory", ACCENT, Color.WHITE);
         JButton editBtn   = actionBtn("✏  Edit & Add",       new Color(0x546a5e), Color.WHITE);
+        JButton linkBtn   = actionBtn("🔗  Link to Existing",  new Color(0x1d4ed8), Color.WHITE);
         JButton cancelBtn = actionBtn("✕  Cancel",           new Color(0xe5e7eb), new Color(0x374151));
+
+        // Check if a product with the same name already exists in inventory
+        boolean nameExists = inventoryManager != null
+                && details != null
+                && details.name != null
+                && !inventoryManager.searchByName(details.name).isEmpty();
 
         addBtn.addActionListener(e    -> handleAdd());
         editBtn.addActionListener(e   -> { /* keep dialog open for editing */ });
+        linkBtn.addActionListener(e   -> handleLinkBarcode());
         cancelBtn.addActionListener(e -> dispose());
 
         p.add(addBtn);
         p.add(editBtn);
+        if (nameExists) p.add(linkBtn);   // only show when a match exists
         p.add(cancelBtn);
         return p;
     }
@@ -288,7 +320,7 @@ public class ProductFoundDialog extends JDialog {
             int choice = JOptionPane.showConfirmDialog(
                     this,
                     "\"" + name + "\" already exists in inventory.\n"
-                    + "Use Edit to update quantity.\n\nAdd anyway as a new entry?",
+                    + "Use \u201cLink to Existing\u201d to add this barcode to that product.\n\nAdd anyway as a new entry?",
                     "Product Already Exists",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.WARNING_MESSAGE);
@@ -298,15 +330,52 @@ public class ProductFoundDialog extends JDialog {
         // ── Build Product and add via MainFrame's public API ──────────────────
         int newId = inventoryManager.nextId();
         Product p = new Product(newId, name, category, price, qty, expiry, 0.0);
+        // Attach the scanned barcode to this product
+        p.addBarcode(barcode);
 
         // saveProduct() handles: addProduct, refreshAll, statusBar update, form clear
         if (parentFrame instanceof MainFrame mf) {
             mf.saveProduct(p);
         } else {
-            // Fallback if parent is not MainFrame (shouldn't happen in practice)
             inventoryManager.addProduct(p);
         }
 
+        dispose();
+    }
+
+    /**
+     * Links the scanned barcode to an existing product that shares the same name.
+     * If multiple matches exist, the user picks one from a list.
+     */
+    private void handleLinkBarcode() {
+        String name = (details != null && details.name != null) ? details.name.trim() : nameField.getText().trim();
+        if (name.isEmpty()) { err("No product name available to match."); return; }
+
+        List<Product> matches = inventoryManager.searchByName(name);
+        if (matches.isEmpty()) {
+            err("No existing product named \"" + name + "\" found. Use Add to Inventory instead.");
+            return;
+        }
+
+        Product target;
+        if (matches.size() == 1) {
+            target = matches.get(0);
+        } else {
+            Product[] arr = matches.toArray(new Product[0]);
+            target = (Product) JOptionPane.showInputDialog(
+                    this,
+                    "Multiple products match \"" + name + "\".\nSelect one to link barcode " + barcode + " to:",
+                    "Link Barcode", JOptionPane.QUESTION_MESSAGE, null, arr, arr[0]);
+            if (target == null) return;
+        }
+
+        target.addBarcode(barcode);
+        inventoryManager.updateProduct(target);
+        if (parentFrame instanceof MainFrame mf) mf.refreshAll();
+
+        JOptionPane.showMessageDialog(this,
+                "Barcode " + barcode + " linked to \"" + target.getName() + "\" successfully!",
+                "Barcode Linked", JOptionPane.INFORMATION_MESSAGE);
         dispose();
     }
 
@@ -321,6 +390,22 @@ public class ProductFoundDialog extends JDialog {
         form.add(Box.createRigidArea(new Dimension(0, 3)));
         widget.setAlignmentX(LEFT_ALIGNMENT);
         widget.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+        form.add(widget);
+        form.add(Box.createRigidArea(new Dimension(0, 10)));
+    }
+
+    /**
+     * Same as addLabelRow but accepts any JComponent (e.g. a wrapper JPanel);
+     * does not force MaximumSize so that panels can manage their own layout.
+     */
+    private void addLabelRowWidget(JPanel form, String labelText, JComponent widget) {
+        JLabel lbl = new JLabel(labelText);
+        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lbl.setForeground(new Color(0x4a5568));
+        lbl.setAlignmentX(LEFT_ALIGNMENT);
+        form.add(lbl);
+        form.add(Box.createRigidArea(new Dimension(0, 3)));
+        widget.setAlignmentX(LEFT_ALIGNMENT);
         form.add(widget);
         form.add(Box.createRigidArea(new Dimension(0, 10)));
     }

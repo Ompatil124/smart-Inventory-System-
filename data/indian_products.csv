@@ -1,31 +1,36 @@
-barcode,name,category,price,defaultQty
-8906090574389,Too Yumm Bhoot Chips,Snacks,20.00,50
-8901030689276,Parle-G Biscuits,Snacks,10.00,100
-8901719110023,Amul Full Cream Milk 500ml,Dairy,28.00,50
-8901063111684,Lay's Classic Salted Chips,Snacks,20.00,50
-8904109400018,Britannia Good Day Butter,Bakery,35.00,40
-8901719100048,Amul Butter 100g,Dairy,55.00,30
-8901030004947,Parle Hide & Seek,Snacks,20.00,60
-8901063193635,Too Yumm Multigrain,Snacks,20.00,50
-8901719107009,Amul Taaza Milk 1L,Dairy,60.00,40
-8901030817604,Parle Monaco Biscuits,Snacks,20.00,80
-8904187500018,Maggi 2-Minute Noodles,Snacks,14.00,100
-8901058851598,Tata Salt 1kg,Grains,24.00,60
-8901058000716,Tata Tea Premium,Beverages,85.00,40
-8901764100349,Haldiram Aloo Bhujia,Snacks,30.00,50
-8906002480019,Paper Boat Aamras,Beverages,30.00,30
-8901063100007,Kurkure Masala Munch,Snacks,20.00,80
-8901030004008,Parle Krackjack,Snacks,20.00,70
-8901719140012,Amul Cheese Slices,Dairy,110.00,20
-8901058004202,Tata Sampann Chana Dal,Grains,130.00,30
-8906001600019,Bingo Mad Angles,Snacks,20.00,60
-8901063880019,Lay's Magic Masala,Snacks,20.00,50
-8901030818007,Parle Bourbon,Snacks,20.00,70
-8901719160003,Amul Kool Milk,Beverages,25.00,40
-8901058851000,Tata Iodized Salt,Grains,20.00,50
-8904109401015,Britannia Marie Gold,Bakery,30.00,60
-8901063198005,Too Yumm Rice Puff,Snacks,20.00,50
-8906005280015,Paperboat Jaljeera,Beverages,30.00,30
-8901030877009,Parle Melody Chocolate,Snacks,1.00,200
-8901719130006,Amul Dark Chocolate,Snacks,55.00,25
-8901058003700,Tata Coffee Premium,Beverages,180.00,20
+barcode,name,category,price,defaultQty,expiryDate
+8906090574389,Too Yumm Bhoot Chips,Snacks,20.00,50,2026-10-31
+8901030689276,Parle-G Biscuits,Snacks,10.00,100,2026-01-15
+8901719110023,Amul Full Cream Milk 500ml,Dairy,28.00,50,2026-03-28
+8901063111684,Lay's Classic Salted Chips,Snacks,20.00,50,2026-11-30
+8904109400018,Britannia Good Day Butter,Bakery,35.00,40,2026-02-20
+8901719100048,Amul Butter 100g,Dairy,55.00,30,2026-04-18
+8901030004947,Parle Hide & Seek,Snacks,20.00,60,2026-09-30
+8901063193635,Too Yumm Multigrain,Snacks,20.00,50,2026-12-15
+8901719107009,Amul Taaza Milk 1L,Dairy,60.00,40,2026-04-10
+8901030817604,Parle Monaco Biscuits,Snacks,20.00,80,2026-08-31
+8904187500018,Maggi 2-Minute Noodles,Snacks,14.00,100,2027-03-31
+8901058851598,Tata Salt 1kg,Grains,24.00,60,2028-06-30
+8901058000716,Tata Tea Premium,Beverages,85.00,40,2027-08-31
+8901764100349,Haldiram Aloo Bhujia,Snacks,30.00,50,2026-07-31
+8906002480019,Paper Boat Aamras,Beverages,30.00,30,2026-04-05
+8901063100007,Kurkure Masala Munch,Snacks,20.00,80,2026-11-30
+8901030004008,Parle Krackjack,Snacks,20.00,70,2026-10-15
+8901719140012,Amul Cheese Slices,Dairy,110.00,20,2026-04-20
+8901058004202,Tata Sampann Chana Dal,Grains,130.00,30,2027-12-31
+8906001600019,Bingo Mad Angles,Snacks,20.00,60,2026-12-31
+8901063880019,Lay's Magic Masala,Snacks,20.00,50,2026-11-15
+8901030818007,Parle Bourbon,Snacks,20.00,70,2026-09-15
+8901719160003,Amul Kool Milk,Beverages,25.00,40,2026-04-02
+8901058851000,Tata Iodized Salt,Grains,20.00,50,2028-03-31
+8904109401015,Britannia Marie Gold,Bakery,30.00,60,2026-03-10
+8901063198005,Too Yumm Rice Puff,Snacks,20.00,50,2026-10-31
+8906005280015,Paperboat Jaljeera,Beverages,30.00,30,2026-06-30
+8901030877009,Parle Melody Chocolate,Snacks,1.00,200,2026-07-31
+8901719130006,Amul Dark Chocolate,Snacks,55.00,25,2026-12-31
+8901058003700,Tata Coffee Premium,Beverages,180.00,20,2027-06-30
+TMCNOIR150ML,The Man Company Body Parfum Noir 150ml,Other,299.00,10,2027-12-31
+8907367039075,The Man Company Body Parfum Noir 150ml,Other,299.00,10,2027-12-31
+8902346012353,ORS Electrolyte,Beverages,23.00,50,2028-06-30
+8901262110266,Amul Chocolate Whey Protein 34g x30,Dairy,2070.00,10,2027-06-30
+8901262151368,Amul Moti Long-life Milk 450ml x24,Dairy,1080.00,5,2026-01-31
